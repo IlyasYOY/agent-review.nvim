@@ -14,9 +14,14 @@ or depend on personal Codex/OpenCode configuration.
 - `codex` and/or `opencode` for the corresponding runner
 - `vim-dispatch` is optional
 
+Run `:checkhealth agent-review` after installation. The health provider checks
+the Neovim version, startup commands, optional review CLIs, and optional
+vim-dispatch integration without turning missing optional tools into load
+errors.
+
 ## Installation
 
-With Neovim's built-in `vim.pack`:
+With Neovim 0.12 or newer, use the built-in `vim.pack`:
 
 ```lua
 vim.pack.add {
@@ -24,9 +29,22 @@ vim.pack.add {
 }
 ```
 
-With another package manager, add `IlyasYOY/agent-review.nvim` normally. The
-plugin has no required Lua dependencies and registers its commands when loaded.
-Calling `setup()` is optional.
+Neovim 0.11 users should install the plugin with lazy.nvim or another package
+manager.
+
+With lazy.nvim:
+
+```lua
+{
+    "IlyasYOY/agent-review.nvim",
+    config = function()
+        require("agent-review").setup {}
+    end,
+}
+```
+
+The plugin has no required Lua dependencies and registers its commands when
+loaded. Calling `setup()` is optional.
 
 ## Configuration
 
@@ -121,15 +139,29 @@ Result formats use standard Neovim compiler files. Add
 `compiler/customreview.vim` to your config or plugin and reference it from the
 runner. This keeps the same parser in Dispatch and `:make` modes.
 
+## Lua API
+
+- `setup(opts)` replaces the default backend, runner, and runner overrides.
+- `run({ runner?, args?, cwd? })` resolves and executes a structured
+  invocation, returning whether the backend launched it.
+- `register_runner(name, spec)` registers or replaces an extensible runner.
+- `runners()` returns sorted registered runner names.
+
+See `:help agent-review` for the full command, setup, runner, and diagnostic
+reference.
+
 ## Development
 
 ```sh
 make check
 make test NVIM_VERSION=v0.11.7
+make test NVIM_VERSION=v0.12.4
+make test NVIM_VERSION=nightly
 ```
 
-`make check` runs StyLua, Luacheck, and isolated headless Neovim tests.
+`make check` runs non-mutating StyLua and Luacheck checks, isolated headless
+Neovim specs, and Vim help/tag validation.
 
 ## License
 
-MIT
+MIT. See [LICENSE](./LICENSE).

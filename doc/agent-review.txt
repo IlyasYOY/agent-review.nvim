@@ -1,0 +1,156 @@
+*agent-review.txt*       Agent CLI reviews in the Neovim quickfix list
+
+==============================================================================
+CONTENTS                                                    *agent-review*
+
+1. Requirements                                 |agent-review-requirements|
+2. Setup                                        |agent-review-setup|
+3. Commands                                     |agent-review-commands|
+4. Lua API                                      |agent-review-api|
+5. Runner schema                                |agent-review-runners|
+6. Diagnostic formats                           |agent-review-diagnostics|
+7. Backends                                     |agent-review-backends|
+8. Health                                       |agent-review-health|
+9. Development                                  |agent-review-development|
+
+==============================================================================
+1. REQUIREMENTS                                 *agent-review-requirements*
+
+Neovim 0.11 or newer is required. The `codex` and `opencode` executables are
+optional; install the one used by the corresponding runner. vim-dispatch is
+optional. Without it, the "auto" backend uses Neovim's |:make| command.
+
+==============================================================================
+2. SETUP                                              *agent-review-setup*
+
+setup({opts})                              *agent-review.setup()*
+
+    require("agent-review").setup {
+        default_runner = "codex",
+        backend = "auto",
+        runners = {
+            opencode = {
+                default_args = { "--command", "review" },
+            },
+        },
+    }
+
+All fields are optional. `backend` accepts "auto", "dispatch", or "make".
+`default_runner` names the runner used when no explicit name is passed.
+`runners` merges overrides into the built-in Codex and OpenCode definitions
+and may add new runner definitions.
+
+Calling setup() replaces the previous configuration and resets the runner
+registry. The plugin calls setup() with defaults at load time.
+
+==============================================================================
+3. COMMANDS                                        *agent-review-commands*
+
+:AgentReview [runner] [args...]                          *:AgentReview*
+        Run the named runner, or the configured default when the first
+        argument is not a registered runner.
+
+:CodexReview [args...]                                  *:CodexReview*
+        Compatibility command that always selects the Codex runner.
+
+:OpenCodeReview [args...]                               *:OpenCodeReview*
+        Compatibility command that always selects the OpenCode runner.
+
+Command arguments are preserved as individual argv entries and shell-escaped
+at the backend boundary. Use normal Ex escaping for whitespace. The Lua API is
+preferred when one argument itself contains whitespace.
+
+==============================================================================
+4. LUA API                                           *agent-review-api*
+
+run({opts})                                   *agent-review.run()*
+        Resolve and execute a runner. opts accepts `runner`, an `args` list,
+        and `cwd`. Returns true when the backend launched the invocation and
+        false after a reported validation or launch error.
+
+register_runner({name}, {spec})       *agent-review.register_runner()*
+        Validate and register or replace a runner.
+
+runners()                                 *agent-review.runners()*
+        Return sorted registered runner names.
+
+==============================================================================
+5. RUNNER SCHEMA                                   *agent-review-runners*
+
+A static runner has these fields:
+
+argv            Required non-empty fixed command prefix.
+compiler        Required compiler name.
+default_args    Optional argv inserted before invocation arguments.
+require_args    Optional boolean requiring default or invocation arguments.
+
+A dynamic runner uses `build(ctx)` instead of `argv`. ctx contains `name`,
+`args`, `default_args`, and `cwd`. The builder returns:
+
+    { argv = { "program", "argument" }, cwd = "/path", compiler = "name" }
+
+The returned compiler and cwd default to the runner compiler and invocation
+cwd. Raw shell command strings are not accepted.
+
+The built-ins are:
+
+codex           argv={ "codex", "review" }, compiler="codexreview"
+opencode        argv={ "opencode", "run" }, compiler="opencodereview",
+                require_args=true
+
+==============================================================================
+6. DIAGNOSTIC FORMATS                           *agent-review-diagnostics*
+
+The OpenCode compiler accepts one finding per line:
+
+    path:line: warning: message
+    path:line: info: message
+    path:line: error: message
+
+Two-space-indented lines continue the preceding finding.
+
+The Codex compiler accepts native review findings such as:
+
+    - [P1] Message — path:20-24
+
+Codex priorities populate the quickfix `nr` field and ranges populate
+`end_lnum`. Both compilers ignore `NO FINDINGS` and unmatched CLI chatter.
+
+==============================================================================
+7. BACKENDS                                       *agent-review-backends*
+
+auto            Use :Dispatch when available, otherwise use :make.
+dispatch        Require vim-dispatch and report an error if unavailable.
+make            Temporarily load the compiler and command into buffer-local
+                make options, run :make, then restore the previous compiler,
+                'makeprg', and 'errorformat' state.
+
+Both boundaries shell-escape every structured argv item. An unavailable
+executable, empty argv, invalid compiler, or newline argument is rejected
+before execution.
+
+==============================================================================
+8. HEALTH                                           *agent-review-health*
+
+Run:
+
+    :checkhealth agent-review
+
+The provider checks the Neovim version, module loading, startup commands,
+optional Codex and OpenCode executables, and optional vim-dispatch support.
+Missing optional tools are informational and do not prevent plugin loading.
+
+==============================================================================
+9. DEVELOPMENT                                 *agent-review-development*
+
+`make check` runs the canonical non-mutating lint, isolated tests, and tracked
+help validation. Stable compatibility commands are:
+
+    make test NVIM_VERSION=v0.11.7
+    make test NVIM_VERSION=v0.12.4
+
+Nightly is an additional non-blocking compatibility probe:
+
+    make test NVIM_VERSION=nightly
+
+vim:tw=78:ts=8:noet:ft=help:norl:

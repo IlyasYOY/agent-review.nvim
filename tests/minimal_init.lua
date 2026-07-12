@@ -5,6 +5,7 @@ local function root(path)
 end
 
 local test_home = vim.env.AGENT_REVIEW_TEST_HOME or root ".test-home"
+vim.env.NVIM_LOG_FILE = vim.fs.joinpath(test_home, "nvim.log")
 for name, suffix in pairs {
     XDG_CONFIG_HOME = "config",
     XDG_DATA_HOME = "data",
@@ -18,5 +19,6 @@ end
 vim.opt.runtimepath:prepend(root())
 vim.opt.shadafile = "NONE"
 vim.opt.swapfile = false
+vim.opt.undofile = false
 package.path = root "?.lua" .. ";" .. root "?/init.lua" .. ";" .. package.path
 vim.cmd.runtime "plugin/agent-review.lua"
