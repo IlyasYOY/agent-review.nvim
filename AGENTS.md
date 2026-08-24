@@ -32,7 +32,7 @@
 - `make test` runs the isolated suite with the local Neovim.
 - Before compatibility work is complete, run:
   - `make test NVIM_VERSION=v0.11.7`
-  - `make test NVIM_VERSION=v0.12.4`
+  - `make test NVIM_VERSION=v0.12.5`
   - `make test NVIM_VERSION=nightly` as a compatibility probe
 - Run one spec with:
   `nvim --headless --noplugin -i NONE -n -u tests/minimal_init.lua -c 'lua require("tests.runner").run({ files = { "lua/agent-review/config_spec.lua" }, verbose = true })' -c qa`.
